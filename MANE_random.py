@@ -3,10 +3,8 @@
 """
 Created on Mon Nov 25 10:44:10 2024
 
-@author: samir
+@author: samira
 """
-
-""
 
 import numpy as np
 from scipy.linalg import eigh
@@ -37,7 +35,9 @@ class MANE:
         """
         D = np.diag(np.sum(A, axis=1))
         L = D - A
-        D_inv_sqrt = np.linalg.inv(np.sqrt(D))
+        # Add a small epsilon to the diagonal to handle singular matrices
+        epsilon = 1e-6
+        D_inv_sqrt = np.linalg.inv(np.sqrt(D + epsilon * np.eye(D.shape[0])))
         L_norm = D_inv_sqrt @ L @ D_inv_sqrt
         return L_norm
 
@@ -61,6 +61,10 @@ class MANE:
                     F_i = self.embeddings[i]
                     F_j = self.embeddings[j]
                     D_ij = self.D[i][j]  # Cross-layer dependency matrix
+                    
+                    if F_i.shape[0] != D_ij.shape[0] or F_j.shape[0] != D_ij.shape[1]:
+                        raise ValueError(f"Shape mismatch: F_i {F_i.shape}, F_j {F_j.shape}, D_ij {D_ij.shape}")
+                    
                     loss += np.linalg.norm(D_ij - F_i @ F_j.T, ord='fro') ** 2
         return loss
 
@@ -109,38 +113,73 @@ class MANE:
 
 # Example usage
 if __name__ == "__main__":
-    num_nodes = 1000  # Number of nodes
+    num_nodes = [1162, 27, 100]  # Number of nodes for each layer
     num_layers = 3  # Number of layers
     sparsity = 0.01  # Sparsity of the adjacency matrix
 
-    # Generate random sparse adjacency matrices for each layer
-    layers = []
-    for _ in range(num_layers):
-        A = sparse_random(num_nodes, num_nodes, density=sparsity, format="coo").toarray()
-        A = (A + A.T) / 2  # Make symmetric
-        np.fill_diagonal(A, 0)  # No self-loops
-        layers.append(A)
+    # Load your adjacency matrices (or generate them dynamically)
+    layer1 = np.load("layer_1_adjacency_new.npy") # Replace with np.load if using actual data
+    layer2 = np.load("layer_2_adjacency_new.npy")
+    layer3 = np.load("layer_3_adjacency_new.npy")
+    layers = [layer1, layer2, layer3]
 
+    # Ensure all layers are square
+    for i, layer in enumerate(layers):
+       if layer.shape[0] != layer.shape[1]:
+           min_dim = min(layer.shape[0], layer.shape[1])
+           layer = layer[:min_dim, :min_dim]  # Trim to the smallest dimension
+       layer = (layer + layer.T) / 2  # Make symmetric
+       np.fill_diagonal(layer, 0)  # Remove self-loops
+       layers[i] = layer
+       print(f"Fixed layer {i} shape: {layer.shape}")
+
+    # Ensure symmetry and no self-loops
+    for i, layer in enumerate(layers):
+        layer = (layer + layer.T) / 2
+        np.fill_diagonal(layer, 0)
+        layers[i] = layer
+        print(f"Fixed layer {i} shape: {layer.shape}")
+
+
+   
     # Generate random cross-layer dependency matrices
     D = []
     for i in range(num_layers):
         D_row = []
         for j in range(num_layers):
             if i != j:
-                cross_layer = sparse_random(num_nodes, num_nodes, density=sparsity, format="coo").toarray()
+                rows, cols = layers[i].shape[0], layers[j].shape[0]  # Match sizes to layers
+                cross_layer = sparse_random(rows, cols, density=sparsity, format="coo").toarray()
                 D_row.append(cross_layer)
             else:
-                D_row.append(np.zeros((num_nodes, num_nodes)))  # No dependencies within the same layer
+                rows, cols = layers[i].shape[0], layers[j].shape[0]
+                D_row.append(np.zeros((rows, cols)))  # No dependencies within the same layer
         D.append(D_row)
 
-    # Initialize and fit MANE
-    mane = MANE(layers, D, alpha=0.1, embedding_dim=50)  # Adjust embedding_dim as needed
-    mane.fit()
+    # Debugging: Print shapes of cross-layer matrices
+    for i in range(num_layers):
+        for j in range(num_layers):
+            print(f"Fixed D[{i}][{j}] shape: {D[i][j].shape}")
 
-    # Get embeddings
+    # Initialize and fit MANE
+    mane = MANE(layers, D, alpha=0.1, embedding_dim=2)  # Adjust embedding_dim as needed
+    mane.fit()
+   
+
+    # Ensure the full matrix is displayed
+    np.set_printoptions(threshold=np.inf, linewidth=np.inf, suppress=True)
+    # Access the embeddings
     embeddings = mane.get_embeddings()
 
     # Print shape of embeddings for each layer
     for idx, emb in enumerate(embeddings):
         print(f"Embedding for layer {idx}: {emb.shape}")
+
+    # Print shape and embeddings for each layer
+    embeddings = mane.get_embeddings()
+    # Save embeddings to text files for each layer
+    for idx, embedding in enumerate(embeddings):
+        np.savetxt(f"embedding_layer_{idx}.txt", embedding, delimiter=',')
+        print(f"Embedding for layer {idx} saved to embedding_layer_{idx}.txt")
+
 
