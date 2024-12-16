@@ -1,0 +1,27 @@
+Resetting modules to system default. Reseting $MODULEPATH back to system default. All extra directories will be removed from $MODULEPATH.
+
+EnvironmentNameNotFound: Could not find conda environment: cool
+You can list all discoverable environments with `conda info --envs`.
+
+
+/projects/onufriev_lab/SAMIRA/MANE_project/MANE_real_data_random_cross_layers_1.py:50: DeprecationWarning: Keyword argument 'eigvals' is deprecated in favour of 'subset_by_index' keyword instead and will be removed in SciPy 1.12.0.
+  eigenvalues, eigenvectors = eigh(L_norm, eigvals=(0, self.embedding_dim - 1))
+
+Fixed layer 0 shape: (1162, 1162)
+Fixed layer 1 shape: (27, 27)
+Fixed layer 2 shape: (100, 100)
+Fixed D[0][0] shape: (1162, 1162)
+Fixed D[0][1] shape: (1162, 27)
+Fixed D[0][2] shape: (1162, 100)
+Fixed D[1][0] shape: (27, 1162)
+Fixed D[1][1] shape: (27, 27)
+Fixed D[1][2] shape: (27, 100)
+Fixed D[2][0] shape: (100, 1162)
+Fixed D[2][1] shape: (100, 27)
+Fixed D[2][2] shape: (100, 100)
+Embedding for layer 0: (1162, 2)
+Embedding for layer 1: (27, 2)
+Embedding for layer 2: (100, 2)
+Embedding for layer 0 saved to embedding_layer_0.txt
+Embedding for layer 1 saved to embedding_layer_1.txt
+Embedding for layer 2 saved to embedding_layer_2.txt
